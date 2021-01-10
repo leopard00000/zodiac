@@ -37,7 +37,7 @@ class Crawler:
         # resp = requests.get(wikipedia)
         self.name_link_list.append(NameLink('梅西', messi))
 
-        while len(self.result_link_list) < 100:
+        while len(self.result_link_list) < 10:
 
             cur_name = self.name_link_list.pop()
             resp = requests.get(cur_name.url, headers=headers)
@@ -64,8 +64,19 @@ class Crawler:
             logger.debug(f'已处理页面 {cur_name.name}:{cur_name.url}')
 
         with open('./result.txt', 'w+') as f:
+            data = dict()
+            for c in constellations:
+                data.update({c: 0})
             for ret in self.result_link_list:
+                for c in constellations:
+                    if ret.constellations == c:
+                        data[c] += 1
                 f.write(f'{ret.name}:{ret.constellations}\n')
+
+            summary = ''
+            for c in constellations:
+                summary += c + ':' + str(data[c] / len(self.result_link_list))
+            f.write(f'{summary}\n')
 
     def is_interested_link(self, link):
         return self.is_name(link.string) and link.get('href').startswith('/item') and link.string not in [n.name for n
