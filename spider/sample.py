@@ -33,11 +33,18 @@ class Crawler:
 
     def crawl(self):
         headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/76.0.3809.132 Safari/537.36'}
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) '
+                          'Chrome/76.0.3809.132 Safari/537.36'}
         # resp = requests.get(wikipedia)
         self.name_link_list.append(NameLink('梅西', messi))
 
-        while len(self.result_link_list) < 10:
+        data = dict()
+        rate = dict()
+        for c in constellations:
+            data.update({c: 0})
+            rate.update({c: 0})
+
+        while len(self.result_link_list) < 1000:
 
             cur_name = self.name_link_list.pop()
             resp = requests.get(cur_name.url, headers=headers)
@@ -53,40 +60,38 @@ class Crawler:
                         cur_name.constellations = link.string
                         logger.info(f'抓取到星座 {cur_name.name}:{cur_name.constellations}')
                         self.result_link_list.append(cur_name)
+                        for c in constellations:
+                            if cur_name.constellations == c:
+                                data[c] += 1
+                            rate[c] = str(data[c] / len(self.result_link_list))
+                        logger.info(f'已抓取{len(self.result_link_list)}个星座， 分布:{str(rate)}')
+                        with open('./result.txt', 'a+', encoding='utf-8') as f:
+                            try:
+                                f.write(f'{cur_name.name}:{cur_name.constellations}\n')
+                            except Exception:
+                                logger.error(f'write error : {cur_name.name}:{cur_name.constellations}')
                         continue
 
                 if self.is_interested_link(link):
                     url = urllib.parse.urljoin(baike, link.get('href'))
-                    name_link = NameLink(link.text, url)
+                    name = str(link.text).strip()
+                    name_link = NameLink(name, url)
                     self.name_link_list.append(name_link)
 
             self.history_link.append(cur_name)
             logger.debug(f'已处理页面 {cur_name.name}:{cur_name.url}')
 
-        with open('./result.txt', 'w+') as f:
-            data = dict()
-            for c in constellations:
-                data.update({c: 0})
-            for ret in self.result_link_list:
-                for c in constellations:
-                    if ret.constellations == c:
-                        data[c] += 1
-                f.write(f'{ret.name}:{ret.constellations}\n')
+        with open('./data.txt', 'a+', encoding='utf-8') as f:
 
-            summary = ''
-            for c in constellations:
-                summary += c + ':' + str(data[c] / len(self.result_link_list))
-            f.write(f'{summary}\n')
+            f.write(f'{str(rate)}\n')
 
     def is_interested_link(self, link):
-        return self.is_name(link.string) and link.get('href').startswith('/item') and link.string not in [n.name for n
-                                                                                                          in
-                                                                                                          self.result_link_list] and link.string not in [
-                   n.name for n in self.history_link]
+        return self.is_name(link.string) and link.get('href').startswith('/item') and link.string not in [
+            n.name for n in self.history_link] and link.string not in [n.name for n in self.name_link_list]
 
     @staticmethod
     def is_name(text):
-        if not text:
+        if not text or '《' in text:
             return False
         word_list = pseg.lcut(text)
         for eve_word, cixing in word_list:
