@@ -7,6 +7,9 @@ name = "pypi"
 jieba = '*'
 beautifulsoup4 = '*'
 requests = '*'
+tensorflow = "*"
+pandas = "*"
+matplotlib = "*"
 
 [dev-packages]
 
